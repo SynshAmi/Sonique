@@ -30,19 +30,23 @@ public class CompatibilityService {
     private static final Logger logger =
             LoggerFactory.getLogger(CompatibilityService.class);
 
-    public CompatibilityResponse compare(Long userAId, Long userBId)
+    public CompatibilityResponse compare(Long currentUserId, String targetUsername)
     {
-        User userA = userRepository.findById(userAId)
+        User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        User userB = userRepository.findById(userBId)
+        User targetUser = userRepository.findByUsernameIgnoreCase(targetUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (currentUser.getId().equals(targetUser.getId())) {
+            throw new IllegalArgumentException("You cannot compare compatibility with yourself.");
+        }
 
         TasteCompatibilityResponse tasteCompatibility =
-                tasteCompatibilityEngine.compare(userA, userB);
+                tasteCompatibilityEngine.compare(currentUser, targetUser);
 
         ListeningStyleCompatibilityResponse listeningStyleCompatibility =
-                listeningStyleCompatibilityEngine.compare(userA, userB);
+                listeningStyleCompatibilityEngine.compare(currentUser, targetUser);
 
         double overallCompatibility =
                 round(
@@ -55,8 +59,8 @@ public class CompatibilityService {
         try {
 
             summary = geminiCompatibilityService.generateSummary(
-                    userA,
-                    userB,
+                    currentUser,
+                    targetUser,
                     tasteCompatibility,
                     listeningStyleCompatibility,
                     overallCompatibility
@@ -64,7 +68,12 @@ public class CompatibilityService {
 
         } catch (Exception e) {
 
-            logger.error("Failed to generate compatibility summary", e);
+            logger.error(
+                    "Failed to generate compatibility summary for user {} comparing with {}",
+                    currentUserId,
+                    targetUsername,
+                    e
+            );
         }
 
         return CompatibilityResponse.builder()
