@@ -228,14 +228,16 @@ public class GeminiCompatibilityService {
 
             Don't copy these examples.
 
-            ## Final Instructions
-
-            - Maximum 70 words.
-            - Never mention numerical scores.
-            - Mention specific genres or traits whenever relevant.
-            - Keep every statement grounded in the supplied data.
-            - Return ONLY the summary.
-            """);
+                ## Final Instructions
+                - Maximum 70 words.
+                - Never mention numerical scores.
+                - Mention specific genres or traits whenever relevant.
+                - Keep every statement grounded in the supplied data.
+                - Return ONLY the summary.
+                - Return a single plain text paragraph.
+                - Do not use Markdown.
+                - Do not use *, **, _, `, headings, bullet points, italics or bold formatting.
+                - Do not add quotation marks around the summary.""");
 
         return prompt.toString();
     }
