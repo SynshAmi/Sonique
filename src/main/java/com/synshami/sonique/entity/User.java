@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -29,6 +30,12 @@ public class User {
 
     @Column(nullable = false)
     private String passwordHash;
+
+    @OneToOne(mappedBy = "user")
+    private UserProfile userProfile;
+
+    @OneToMany(mappedBy = "user")
+    private List<UserTagPreference> userTagPreferences;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
