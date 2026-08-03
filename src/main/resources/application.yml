@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: sonique
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 900000
+
+spotify:
+  client-id: ${SPOTIFY_CLIENT_ID}
+  client-secret: ${SPOTIFY_CLIENT_SECRET}
+  redirect-uri: http://127.0.0.1:8080/spotify/callback
+  scope: user-read-recently-played user-top-read
+  state-secret: ${SPOTIFY_STATE_SECRET}
+  state-expiration: 300000
+
+lastfm:
+  api-key: ${LASTFM_API_KEY}
+  base-url: http://ws.audioscrobbler.com/2.0
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  base-url: https://generativelanguage.googleapis.com/v1beta
+  model: gemini-2.5-flash
