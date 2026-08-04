@@ -42,6 +42,7 @@ public class SpotifyService {
     private final ArtistRepository artistRepository;
     private final ListeningHistoryRepository listeningHistoryRepository;
     private static final Logger logger = LoggerFactory.getLogger(SpotifyService.class);
+    private static final long DEFAULT_RETRY_AFTER_SECONDS = 2L;
 
     public SpotifyTokenResponse exchangeCodeForTokens(String code) {
 
@@ -61,12 +62,25 @@ public class SpotifyService {
                 new HttpEntity<>(formData, headers);
 
         try {
-            ResponseEntity<SpotifyTokenResponse> response =
-                    restTemplate.postForEntity(
+            ResponseEntity<SpotifyTokenResponse> response;
+            try {
+                response = restTemplate.postForEntity(
+                        url,
+                        request,
+                        SpotifyTokenResponse.class
+                );
+            } catch (HttpClientErrorException ex) {
+                if (ex.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                    handleRateLimitWait(ex);
+                    response = restTemplate.postForEntity(
                             url,
                             request,
                             SpotifyTokenResponse.class
                     );
+                } else {
+                    throw ex;
+                }
+            }
 
             if (response.getBody() == null) {
                 throw new IllegalStateException("Spotify token response was empty");
@@ -96,12 +110,25 @@ public class SpotifyService {
                 new HttpEntity<>(formData, headers);
 
         try {
-            ResponseEntity<SpotifyTokenResponse> response =
-                    restTemplate.postForEntity(
+            ResponseEntity<SpotifyTokenResponse> response;
+            try {
+                response = restTemplate.postForEntity(
+                        url,
+                        request,
+                        SpotifyTokenResponse.class
+                );
+            } catch (HttpClientErrorException ex) {
+                if (ex.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                    handleRateLimitWait(ex);
+                    response = restTemplate.postForEntity(
                             url,
                             request,
                             SpotifyTokenResponse.class
                     );
+                } else {
+                    throw ex;
+                }
+            }
 
             if (response.getBody() == null) {
                 throw new IllegalStateException("Spotify token response was empty");
@@ -141,13 +168,27 @@ public class SpotifyService {
         HttpEntity<Void> request = new HttpEntity<>(headers);
 
         try {
-            ResponseEntity<SpotifyUserProfileResponse> response =
-                    restTemplate.exchange(
+            ResponseEntity<SpotifyUserProfileResponse> response;
+            try {
+                response = restTemplate.exchange(
+                        url,
+                        HttpMethod.GET,
+                        request,
+                        SpotifyUserProfileResponse.class
+                );
+            } catch (HttpClientErrorException ex) {
+                if (ex.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                    handleRateLimitWait(ex);
+                    response = restTemplate.exchange(
                             url,
                             HttpMethod.GET,
                             request,
                             SpotifyUserProfileResponse.class
                     );
+                } else {
+                    throw ex;
+                }
+            }
 
             if (response.getBody() == null) {
                 throw new IllegalStateException("Spotify profile response was empty");
@@ -216,13 +257,27 @@ public class SpotifyService {
         HttpEntity<Void> request = new HttpEntity<>(headers);
 
         try {
-            ResponseEntity<String> response =
-                    restTemplate.exchange(
+            ResponseEntity<String> response;
+            try {
+                response = restTemplate.exchange(
+                        url,
+                        HttpMethod.GET,
+                        request,
+                        String.class
+                );
+            } catch (HttpClientErrorException ex) {
+                if (ex.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
+                    handleRateLimitWait(ex);
+                    response = restTemplate.exchange(
                             url,
                             HttpMethod.GET,
                             request,
                             String.class
                     );
+                } else {
+                    throw ex;
+                }
+            }
 
             if (response.getBody() == null) {
                 throw new IllegalStateException("Recently played response was empty");
@@ -233,6 +288,33 @@ public class SpotifyService {
 
         } catch (Exception ex) {
             throw new RuntimeException("Failed to fetch recently played tracks");
+        }
+    }
+
+    private long getRetryAfterSeconds(HttpClientErrorException ex) {
+        HttpHeaders headers = ex.getResponseHeaders();
+        if (headers != null) {
+            String headerValue = headers.getFirst("Retry-After");
+            if (headerValue != null && !headerValue.trim().isEmpty()) {
+                try {
+                    long seconds = Long.parseLong(headerValue.trim());
+                    if (seconds > 0) {
+                        return seconds;
+                    }
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return DEFAULT_RETRY_AFTER_SECONDS;
+    }
+
+    private void handleRateLimitWait(HttpClientErrorException ex) {
+        long waitSeconds = getRetryAfterSeconds(ex);
+        logger.warn("Spotify API rate limit hit (HTTP 429). Waiting {} second(s) before retrying.", waitSeconds);
+        try {
+            Thread.sleep(waitSeconds * 1000L);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
         }
     }
 
