@@ -1,13 +1,21 @@
 package com.synshami.sonique.service;
 
 import com.synshami.sonique.dto.auth.RegisterResponse;
+import com.synshami.sonique.dto.user.UserResponse;
 import com.synshami.sonique.entity.User;
+
 import com.synshami.sonique.exception.AuthenticationException;
 import com.synshami.sonique.exception.DuplicateResourceException;
+import com.synshami.sonique.exception.ResourceNotFoundException;
+import com.synshami.sonique.repository.ListeningHistoryRepository;
+import com.synshami.sonique.repository.SpotifyTokenRepository;
+import com.synshami.sonique.repository.UserProfileRepository;
 import com.synshami.sonique.repository.UserRepository;
+import com.synshami.sonique.repository.UserTagPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.synshami.sonique.dto.auth.LoginResponse;
 import com.synshami.sonique.security.JwtService;
 
@@ -20,6 +28,10 @@ public class UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final UserTagPreferenceRepository userTagPreferenceRepository;
+    private final ListeningHistoryRepository listeningHistoryRepository;
+    private final UserProfileRepository userProfileRepository;
+    private final SpotifyTokenRepository spotifyTokenRepository;
 
     public RegisterResponse register(String email,
                                      String username,
@@ -72,4 +84,29 @@ public class UserService {
                 .token(token)
                 .build();
     }
-}
+
+    public UserResponse getUserById(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .displayName(user.getDisplayName())
+                .build();
+    }
+
+    @Transactional
+    public void deleteAccount(Long userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        userTagPreferenceRepository.deleteByUserId(userId);
+        listeningHistoryRepository.deleteByUserId(userId);
+        userProfileRepository.deleteByUserId(userId);
+        spotifyTokenRepository.deleteByUserId(userId);
+        userRepository.delete(user);
+    }
+}

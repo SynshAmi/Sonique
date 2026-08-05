@@ -6,6 +6,7 @@ import com.synshami.sonique.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,6 +14,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ListeningHistoryRepository extends JpaRepository<ListeningHistory, Long> {
+    @Modifying
+    @Query("""
+        DELETE FROM ListeningHistory h
+        WHERE h.user.id = :userId
+""")
+    void deleteByUserId(@Param("userId") Long userId);
+
     boolean existsByUserAndPlayedAt(User user, LocalDateTime playedAt);
 
     Page<ListeningHistory> findByUserIdOrderByPlayedAtDesc(Long userId, Pageable pageable);
