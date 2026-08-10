@@ -89,7 +89,7 @@ public class SpotifyService {
             return response.getBody();
 
         } catch (RestClientException ex) {
-            throw new AuthenticationException("Spotify token exchange failed");
+            throw new AuthenticationException("Spotify token exchange failed", ex);
         }
     }
 
@@ -144,17 +144,17 @@ public class SpotifyService {
                 String error=errorNode.path("error").asText();
 
                 if("invalid_grant".equals(error)) {
-                    throw new SpotifyReauthorizationRequiredException("Spotify refresh token is invalid or expired");
+                    throw new SpotifyReauthorizationRequiredException("Spotify refresh token is invalid or expired", ex);
                 }
 
             }   catch(JsonProcessingException ignored) {
 
             }
 
-            throw new AuthenticationException("Spotify token refresh failed");
+            throw new AuthenticationException("Spotify token refresh failed", ex);
         }
         catch (RestClientException ex) {
-            throw new AuthenticationException("Spotify token exchange failed");
+            throw new AuthenticationException("Spotify token exchange failed", ex);
         }
     }
 
@@ -197,7 +197,7 @@ public class SpotifyService {
             return response.getBody();
 
         } catch (RestClientException ex) {
-            throw new AuthenticationException("Spotify profile fetch failed");
+            throw new AuthenticationException("Spotify profile fetch failed", ex);
         }
     }
 
@@ -286,8 +286,10 @@ public class SpotifyService {
             ObjectMapper objectMapper = new ObjectMapper();
             return objectMapper.readTree(response.getBody());
 
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to fetch recently played tracks");
+        } catch (RestClientException ex) {
+            throw new AuthenticationException("Failed to fetch recently played tracks", ex);
+        } catch (JsonProcessingException ex) {
+            throw new AuthenticationException("Failed to parse recently played tracks response", ex);
         }
     }
 

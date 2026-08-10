@@ -1,6 +1,7 @@
 package com.synshami.sonique.service;
 
 import com.synshami.sonique.config.SpotifyProperties;
+import com.synshami.sonique.exception.AuthenticationException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
@@ -52,7 +53,7 @@ public class OAuthStateService {
             return Long.parseLong(claims.getSubject());
 
         } catch (JwtException | IllegalArgumentException e) {
-            throw new RuntimeException("Invalid or expired OAuth state");
+            throw new AuthenticationException("Invalid or expired OAuth state", e);
         }
     }
 }

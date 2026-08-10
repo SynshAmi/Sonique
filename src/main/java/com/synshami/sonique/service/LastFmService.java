@@ -1,8 +1,11 @@
 package com.synshami.sonique.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.synshami.sonique.config.LastFmProperties;
+import com.synshami.sonique.exception.AuthenticationException;
+import com.synshami.sonique.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -26,7 +29,7 @@ public class LastFmService {
                 .queryParam("format", "json")
                 .toUriString();
 
-        try{
+        try {
             ResponseEntity<String> response=restTemplate.getForEntity(url, String.class);
 
             if(response.getBody()==null)
@@ -34,14 +37,27 @@ public class LastFmService {
                 throw new IllegalStateException("Last.fm response was empty");
             }
 
-            ObjectMapper objectMapper=new ObjectMapper();
-            return objectMapper.readTree(response.getBody());
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode rootNode = objectMapper.readTree(response.getBody());
 
-        }   catch (RestClientException ex) {
+            if (rootNode.has("error")) {
+                int errorCode = rootNode.path("error").asInt();
+                String message = rootNode.path("message").asText("Last.fm returned an error");
+                if (errorCode == 6) {
+                    throw new ResourceNotFoundException("Artist not found on Last.fm: " + artistName);
+                } else if (errorCode == 4 || errorCode == 10) {
+                    throw new AuthenticationException("Last.fm authentication failed: " + message);
+                } else {
+                    throw new RuntimeException("Last.fm error (" + errorCode + "): " + message);
+                }
+            }
+
+            return rootNode;
+
+        } catch (RestClientException ex) {
             throw new RuntimeException(
                     "Failed to fetch artist info from Last.fm", ex);
-        }
-            catch(Exception ex){
+        } catch (JsonProcessingException ex) {
             throw new RuntimeException("Failed to parse Last.fm response", ex);
         }
     }
@@ -56,7 +72,7 @@ public class LastFmService {
                 .queryParam("format", "json")
                 .toUriString();
 
-        try{
+        try {
             ResponseEntity<String> response=restTemplate.getForEntity(url, String.class);
 
             if(response.getBody()==null)
@@ -64,14 +80,27 @@ public class LastFmService {
                 throw new IllegalStateException("Last.fm response was empty");
             }
 
-            ObjectMapper objectMapper=new ObjectMapper();
-            return objectMapper.readTree(response.getBody());
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode rootNode = objectMapper.readTree(response.getBody());
 
-        }   catch (RestClientException ex) {
+            if (rootNode.has("error")) {
+                int errorCode = rootNode.path("error").asInt();
+                String message = rootNode.path("message").asText("Last.fm returned an error");
+                if (errorCode == 6) {
+                    throw new ResourceNotFoundException("Artist not found on Last.fm: " + artistName);
+                } else if (errorCode == 4 || errorCode == 10) {
+                    throw new AuthenticationException("Last.fm authentication failed: " + message);
+                } else {
+                    throw new RuntimeException("Last.fm error (" + errorCode + "): " + message);
+                }
+            }
+
+            return rootNode;
+
+        } catch (RestClientException ex) {
             throw new RuntimeException(
                     "Failed to fetch artist tags from Last.fm", ex);
-        }
-        catch(Exception ex){
+        } catch (JsonProcessingException ex) {
             throw new RuntimeException("Failed to parse Last.fm response", ex);
         }
     }
