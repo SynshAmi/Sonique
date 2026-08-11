@@ -12,20 +12,39 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+  } catch (networkError: any) {
+    // This catches pre-HTTP errors like CORS preflight failures, DNS errors, or server down.
+    throw new Error(`[NETWORK] Network request failed. Backend may be unreachable or CORS preflight was rejected. (Raw: ${networkError.message})`);
+  }
 
   if (!response.ok) {
-    let errorMessage = `API Error: ${response.statusText}`;
+    let errorMessage = `HTTP ${response.status} ${response.statusText}`;
     try {
-      const errorData = await response.json();
-      errorMessage = errorData.message || errorMessage;
+      const rawBody = await response.text();
+      try {
+        const errorData = JSON.parse(rawBody);
+        if (errorData.messages && Array.isArray(errorData.messages)) {
+          errorMessage += ` | ${errorData.messages.join(", ")}`;
+        } else if (errorData.message) {
+          errorMessage += ` | ${errorData.message}`;
+        } else {
+          errorMessage += ` | Body: ${rawBody}`;
+        }
+      } catch (e) {
+        errorMessage += ` | Raw Body: ${rawBody}`;
+      }
     } catch (e) {
-      // Ignored
+      errorMessage += ` | (Failed to read response body)`;
     }
-    throw new Error(errorMessage);
+    
+    // Explicitly prepend status for App.tsx routing
+    throw new Error(`[${response.status}] ${errorMessage}`);
   }
 
   // Handle 204 No Content

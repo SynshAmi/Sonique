@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { apiCall } from '../api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 interface AuthScreenProps {
   onLoginSuccess: () => void;
@@ -10,6 +10,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Form states
   const [email, setEmail] = useState('');
@@ -20,6 +21,40 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Client-side validation
+    if (!email || !password) {
+      setError('Please fill in all required fields.');
+      return;
+    }
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (!isLogin) {
+      if (!username || !displayName) {
+        setError('Please fill in all required fields.');
+        return;
+      }
+      if (username.length < 4 || username.length > 20) {
+        setError('Username must be between 4 and 20 characters.');
+        return;
+      }
+      if (!username.match(/^[a-zA-Z0-9_.]+$/)) {
+        setError('Username can only contain letters, numbers, underscores, and dots.');
+        return;
+      }
+      if (displayName.length < 2 || displayName.length > 30) {
+        setError('Display name must be between 2 and 30 characters.');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -161,16 +196,25 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
               </>
             )}
 
-            <div className="space-y-1">
+            <div className="space-y-1 relative">
               <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Password</label>
-              <input 
-                type="password" 
-                required 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-transparent border-b border-gray-800 focus:border-sonique-lime py-3 text-white placeholder-gray-700 outline-none transition-colors"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  required 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-transparent border-b border-gray-800 focus:border-sonique-lime py-3 text-white placeholder-gray-700 outline-none transition-colors pr-10"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-2"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
 
             <button 
