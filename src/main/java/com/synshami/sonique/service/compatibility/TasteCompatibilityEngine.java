@@ -26,6 +26,9 @@ public class TasteCompatibilityEngine {
     private static final double TRAIT_WEIGHT = 0.25;
     private static final double VOCAL_WEIGHT = 0.15;
 
+    private static final double MIN_EXPLAINABLE_PREFERENCE_WEIGHT = 0.03;
+    private static final int MAX_UNIQUE_PREFERENCES_PER_USER = 3;
+
     public TasteCompatibilityResponse compare(User userA, User userB) {
 
         Map<CanonicalTagCategory, List<UserTagPreference>> userAPreferences =
@@ -59,6 +62,9 @@ public class TasteCompatibilityEngine {
         uniquePreferences.addAll(genreResult.uniquePreferences());
         uniquePreferences.addAll(traitResult.uniquePreferences());
         uniquePreferences.addAll(vocalResult.uniquePreferences());
+
+        // Filter unique preferences for explainability
+        uniquePreferences = filterExplainablePreferences(uniquePreferences);
 
         return TasteCompatibilityResponse.builder()
                 .compatibilityScore(round(overallScore))
@@ -405,6 +411,30 @@ public class TasteCompatibilityEngine {
 
     private double round(double value) {
         return Math.round(value * 1000.0) / 1000.0;
+    }
+
+    private List<UniquePreferenceResponse> filterExplainablePreferences(
+            List<UniquePreferenceResponse> preferences) {
+
+        Map<PreferenceOwner, List<UniquePreferenceResponse>> byOwner = new HashMap<>();
+        for (UniquePreferenceResponse pref : preferences) {
+            byOwner.computeIfAbsent(pref.getOwner(), k -> new ArrayList<>())
+                    .add(pref);
+        }
+
+        List<UniquePreferenceResponse> filtered = new ArrayList<>();
+
+        for (Map.Entry<PreferenceOwner, List<UniquePreferenceResponse>> entry : byOwner.entrySet()) {
+            List<UniquePreferenceResponse> ownerPreferences = entry.getValue();
+
+            ownerPreferences.stream()
+                    .filter(p -> p.getWeight() >= MIN_EXPLAINABLE_PREFERENCE_WEIGHT)
+                    .sorted((a, b) -> Double.compare(b.getWeight(), a.getWeight()))
+                    .limit(MAX_UNIQUE_PREFERENCES_PER_USER)
+                    .forEach(filtered::add);
+        }
+
+        return filtered;
     }
 
     public record MatchResult(
