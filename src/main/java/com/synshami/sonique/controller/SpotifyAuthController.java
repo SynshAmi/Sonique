@@ -55,7 +55,7 @@ public class SpotifyAuthController {
         return new ConnectResponse(authUrl);
     }
 
-    @GetMapping("/callback")
+    @GetMapping(value = "/callback", produces = org.springframework.http.MediaType.TEXT_HTML_VALUE)
     public String callback(
             @RequestParam("code") String code,
             @RequestParam("state") String state
@@ -65,7 +65,7 @@ public class SpotifyAuthController {
 
         spotifyService.handleSpotifyCallback(userId, code);
 
-        return "Spotify Connected Successfully";
+        return "<html><body><script>window.opener.postMessage({type: 'SPOTIFY_CONNECTED'}, '*'); window.close();</script></body></html>";
     }
 
     public record ConnectResponse(String authUrl) {}

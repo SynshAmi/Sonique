@@ -22,6 +22,7 @@ import org.springframework.web.client.RestTemplate;
 import com.synshami.sonique.dto.spotify.SpotifyUserProfileResponse;
 import com.synshami.sonique.entity.*;
 import com.synshami.sonique.exception.DuplicateResourceException;
+import com.synshami.sonique.service.profile.IdentityGenerationService;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -43,6 +44,7 @@ public class SpotifyService {
     private final ListeningHistoryRepository listeningHistoryRepository;
     private static final Logger logger = LoggerFactory.getLogger(SpotifyService.class);
     private static final long DEFAULT_RETRY_AFTER_SECONDS = 2L;
+    private final IdentityGenerationService identityGenerationService;
 
     public SpotifyTokenResponse exchangeCodeForTokens(String code) {
 
@@ -245,6 +247,8 @@ public class SpotifyService {
 
             spotifyTokenRepository.save(newToken);
         }
+        ingestRecentlyPlayed(user, tokenResponse.getAccessToken());
+        identityGenerationService.generate(userId);
     }
 
     public JsonNode getRecentlyPlayedTracks(String accessToken) {

@@ -58,6 +58,18 @@ function App() {
     return () => clearInterval(intervalId);
   }, [isGenerating, profileExists, generationError]);
 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'SPOTIFY_CONNECTED') {
+        setIsGenerating(true);
+        checkProfile();
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const handleLoginSuccess = async () => {
     setLoading(true)
     setIsAuthenticated(true)
@@ -96,7 +108,7 @@ function App() {
     return <IdentityGenerationScreen />
   }
 
-  return <SpotifyConnectScreen onConnecting={() => setIsGenerating(true)} />
+  return <SpotifyConnectScreen />
 }
 
 export default App

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { apiCall } from '../api';
 import { Loader2 } from 'lucide-react';
 
-export const SpotifyConnectScreen = ({ onConnecting }: { onConnecting: () => void }) => {
+export const SpotifyConnectScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,8 +26,8 @@ export const SpotifyConnectScreen = ({ onConnecting }: { onConnecting: () => voi
           window.location.href = response.authUrl;
           return;
         }
-        // Tell App.tsx to transition to the generating state
-        onConnecting();
+        // Wait for the popup to complete the flow and postMessage back
+        // onConnecting();
       } else {
         if (popup) popup.close();
         throw new Error('Invalid response from server.');
