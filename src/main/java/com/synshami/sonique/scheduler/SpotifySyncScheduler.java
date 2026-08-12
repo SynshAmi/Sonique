@@ -29,6 +29,8 @@ public class SpotifySyncScheduler {
     @Scheduled(fixedDelay = 900000)
     public void syncUsers() {
         logger.info("[SpotifySyncScheduler] Scheduler triggered");
+        logger.info("Java timezone: {}", java.time.ZoneId.systemDefault());
+        logger.info("Java now: {}", LocalDateTime.now());
 
         List<SpotifyToken> tokens = spotifyTokenRepository.findAllByConnectionStatus(SpotifyConnectionStatus.CONNECTED);
 
