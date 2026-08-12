@@ -15,7 +15,7 @@ public class GeminiTagMappingScheduler {
     private static final Logger logger =
             LoggerFactory.getLogger(GeminiTagMappingScheduler.class);
 
-    @Scheduled(fixedDelay = 900000)
+    @Scheduled(fixedDelay = 900000, initialDelay = 600000)
     public void generateMappings() {
         logger.info("[GeminiTagMappingScheduler] Scheduler triggered");
 
