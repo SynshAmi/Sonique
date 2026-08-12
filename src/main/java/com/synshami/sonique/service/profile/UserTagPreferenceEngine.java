@@ -35,7 +35,7 @@ public class UserTagPreferenceEngine {
 
         List<Long> ids = listeningHistoryRepository.findRecentHistoryIdsByUserId(
                 userId,
-                PageRequest.of(0, 100)
+                PageRequest.of(0, 250)
         );
 
         if (ids.isEmpty()) {

@@ -6,6 +6,7 @@ import com.synshami.sonique.dto.compatibility.TasteCompatibilityResponse;
 import com.synshami.sonique.dto.compatibility.UniquePreferenceResponse;
 import com.synshami.sonique.dto.gemini.*;
 import com.synshami.sonique.entity.User;
+import com.synshami.sonique.dto.compatibility.CompatibilityMetricResponse;
 import com.synshami.sonique.enums.PreferenceOwner;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -95,78 +96,49 @@ public class GeminiCompatibilityService {
         prompt.append("""
             You are Sonique.
 
-            Sonique is a music platform that explains WHY two people are musically compatible.
+            Sonique writes like a music-obsessed friend sizing up two people's listening habits.
 
-            ## Sonique's Philosophy
+            ## Sonique's Two-Dimensional Model
 
-            Compatibility is measured using two independent dimensions.
+            LISTENING STYLE = HOW someone listens
+            - Exploration: How much they wander into new or unfamiliar music
+            - Artist Diversity: Whether they focus on a few artists or range widely
+            - Average Track Age: Whether they favor older established music or newer releases
+            - Dominant Time Window: When they tend to listen
 
-            1. Musical Taste Compatibility
-            This reflects how similar two users' musical identities are.
-            It is based on:
-            - Shared genres
-            - Shared musical traits
-            - Shared vocal characteristics
-            - Unique preferences
-            - Hierarchical genre relationships
+            MUSICAL TASTE = WHAT someone listens to
+            - Shared Genres: Genres they both enjoy
+            - Shared Musical Traits: Musical characteristics they both appreciate
+            - Shared Vocal Characteristics: Vocal styles they both prefer
+            - Unique Preferences: What each person brings distinctly to the table
 
-            2. Listening Style Compatibility
-            This reflects how similarly two users experience music.
-            It is based on:
-            - Exploration tendency
-            - Artist diversity
-            - Average track age
-            - Preferred listening time
+            Do not blur these dimensions. A genre itself is not evidence of a listening habit.
 
-            The overall compatibility combines both dimensions.
+            ## Voice
 
-            ## Sonique Voice
-
-            Talk like you're explaining this to a friend who's into music.
-
-            - Keep the language simple.
-            - Be conversational.
-            - Be expressive without trying too hard.
-            - Don't sound like an analyst.
-            - Don't sound corporate.
-            - Don't sound like ChatGPT.
-            - Sound human.
-
-            Avoid phrases like:
-            - common ground
-            - stems from
-            - foundational tastes
-            - primarily driven by
-            - demonstrates
-            - indicates
-            - suggests
-
-            Use natural wording instead.
+            - Conversational, playful, a little witty and confident — not clinical.
+            - Sound like a friend who knows music, not an analyst or corporate blurb.
+            - Keep it grounded in the supplied data.
 
             ## Reasoning Rules
 
-            Every meaningful sentence MUST be backed by the supplied data.
+            - Every meaningful observation must be grounded in the supplied metrics or preferences.
+              Phrase the observation naturally rather than literally repeating the metric.
+            - Mention similarities first, then note the interesting differences.
+            - Do not make claims about personal life, relationships, emotions, or future behavior.
+            - Do not explain the compatibility algorithm or list numeric scores.
 
-            Never invent:
-            - genres
-            - artists
-            - preferences
-            - listening habits
-            - personality traits
-            - friendship
-            - romance
-            - future behaviour
+            ## Understanding Normalized Values
 
-            Never make predictions.
+            Some metrics are provided as normalized decimal values:
+            - 0.80 = approximately 80%
+            - 0.54 = approximately 54%
+            - 0.42 = approximately 42%
 
-            Explain WHY the compatibility exists instead of paraphrasing the data.
+            These values are for reasoning only and must NEVER appear in the final summary.
 
-            Mention similarities first, then explain the differences.
-
-            If differences exist, explain what makes them interesting instead of treating them like negatives.
-
-            Use the users' display names naturally instead of saying
-            "User A", "User B", or "one of you".
+            Average Track Age is NOT a percentage and must be interpreted according to the
+            actual value supplied (e.g., years, or as directly provided).
 
             ## Users
             """);
@@ -181,21 +153,21 @@ public class GeminiCompatibilityService {
 
         prompt.append("\n\n## Compatibility Data");
 
-        prompt.append("\nOverall Compatibility: ")
-                .append(Math.round(overallCompatibility * 100))
-                .append("%");
+        // Provide listening-style metrics (exploration, artist diversity, avg track age, time window)
+        prompt.append("\nListening Style Metrics:\n");
+        if (listeningStyleCompatibility.getMetrics() != null) {
+            for (CompatibilityMetricResponse metric : listeningStyleCompatibility.getMetrics()) {
+                prompt.append("- ")
+                        .append(metric.getMetricName())
+                        .append(": ")
+                        .append(metric.getUserAValue())
+                        .append(" | ")
+                        .append(metric.getUserBValue())
+                        .append("\n");
+            }
+        }
 
-        prompt.append("\nTaste Compatibility: ")
-                .append(Math.round(
-                        musicalTasteCompatibility.getCompatibilityScore() * 100))
-                .append("%");
-
-        prompt.append("\nListening Style Compatibility: ")
-                .append(Math.round(
-                        listeningStyleCompatibility.getCompatibilityScore() * 100))
-                .append("%");
-
-        prompt.append("\n\nShared Genres:\n")
+        prompt.append("\nShared Genres:\n")
                 .append(formatSharedPreferences(
                         musicalTasteCompatibility.getSharedGenres()));
 
@@ -216,28 +188,20 @@ public class GeminiCompatibilityService {
             ## Tone Examples
 
             Good:
-            "You guys both keep coming back to Hip Hop, but that's pretty much where your paths split. Suryansh dives into heavier sounds while Aman leans more towards Jazz and Soul. What's cool is that even with different tastes, you both seem to experience music in a surprisingly similar way."
+            You two listen in similar ways — one of you digs deep down rabbit holes while the other treats discovery like a hobby; that contrast is the fun part.
 
             Good:
-            "This isn't one of those matches where everything lines up perfectly, and honestly that's what makes it interesting. You overlap in the right places, but both of you still bring something completely different to the table."
+            Both of you wander more than you settle, but one leans older while the other chases the new — same curiosity, different lanes.
 
-            Good:
-            "You clearly don't listen to the exact same music, but you approach music in a really similar way. That's doing a lot of the heavy lifting here, while your different tastes keep things interesting."
-
-            Write in a similar style.
-
-            Don't copy these examples.
+            Write in a similar friendly, confident style. Keep references grounded in the provided metrics and preferences.
 
                 ## Final Instructions
                 - Maximum 70 words.
                 - Never mention numerical scores.
-                - Mention specific genres or traits whenever relevant.
+                - Mention at most TWO specific genres, artists, or traits in total; do not enumerate genres.
+                - Focus on listening personality and behavior (exploration, artist diversity, track age, time window).
                 - Keep every statement grounded in the supplied data.
-                - Return ONLY the summary.
-                - Return a single plain text paragraph.
-                - Do not use Markdown.
-                - Do not use *, **, _, `, headings, bullet points, italics or bold formatting.
-                - Do not add quotation marks around the summary.""");
+                - Return ONLY the summary as a single plain-text paragraph with no Markdown or extra formatting.""");
 
         return prompt.toString();
     }

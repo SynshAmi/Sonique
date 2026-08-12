@@ -22,7 +22,7 @@ public class ListeningStyleEngine {
     public ListeningStyleResponse getListeningStyle(Long userId)
     {
 
-        List<ListeningHistory> history=listeningHistoryRepository.findRecentHistoryWithSongs(userId, PageRequest.of(0, 100));
+        List<ListeningHistory> history=listeningHistoryRepository.findRecentHistoryWithSongs(userId, PageRequest.of(0, 250));
         if(history.isEmpty())
         {
             return new ListeningStyleResponse(0.0, 0.0, "Not enough data.", 0.0);

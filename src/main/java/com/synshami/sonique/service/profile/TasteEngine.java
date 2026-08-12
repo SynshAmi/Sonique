@@ -24,7 +24,7 @@ public class TasteEngine {
     private final UserTagPreferenceRepository userTagPreferenceRepository;
 
     public TasteEngineResponse getTasteMetrics(Long userId) {
-        List<ListeningHistory> history=listeningHistoryRepository.findRecentHistoryWithSongs(userId, PageRequest.of(0, 100));
+        List<ListeningHistory> history=listeningHistoryRepository.findRecentHistoryWithSongs(userId, PageRequest.of(0, 250));
 
         Map<Artist, Integer> artistCounts = listeningAnalysisService.getArtistFrequencyMap(history);
         Map<Song, Integer> songCounts = listeningAnalysisService.getSongFrequencyMap(history);

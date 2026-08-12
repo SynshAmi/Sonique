@@ -94,6 +94,7 @@ public class UserService {
                 .email(user.getEmail())
                 .username(user.getUsername())
                 .displayName(user.getDisplayName())
+                .spotifyConnected(spotifyTokenRepository.findByUserId(userId).isPresent())
                 .build();
     }
 
@@ -109,4 +110,4 @@ public class UserService {
         spotifyTokenRepository.deleteByUserId(userId);
         userRepository.delete(user);
     }
-}
+}
