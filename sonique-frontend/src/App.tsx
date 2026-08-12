@@ -3,7 +3,7 @@ import { AuthScreen } from './pages/AuthScreen'
 import { SpotifyConnectScreen } from './pages/SpotifyConnectScreen'
 import { IdentityGenerationScreen } from './pages/IdentityGenerationScreen'
 import { AuthenticatedApp } from './components/AuthenticatedApp'
-import { apiCall } from './api'
+import { apiCall, API_BASE_URL } from './api'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
@@ -59,8 +59,9 @@ function App() {
   }, [isGenerating, profileExists, generationError]);
 
   useEffect(() => {
+    const expectedOrigin = new URL(API_BASE_URL, window.location.origin).origin;
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
+      if (event.origin !== expectedOrigin && event.origin !== window.location.origin) return;
       if (event.data?.type === 'SPOTIFY_CONNECTED') {
         setIsGenerating(true);
         checkProfile();

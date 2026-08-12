@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { apiCall } from '../api';
 
 export const AccountScreen = () => {
-  const [user, setUser] = useState<{ id: number, email: string, username: string, displayName: string } | null>(null);
+  const [user, setUser] = useState<{ id: number, email: string, username: string, displayName: string, spotifyConnected?: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -20,6 +21,45 @@ export const AccountScreen = () => {
     };
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'SPOTIFY_CONNECTED') {
+        setConnecting(false);
+        // Refresh user data
+        apiCall('/users/me').then(setUser).catch(console.error);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const handleConnectSpotify = async () => {
+    setConnecting(true);
+    setError('');
+
+    const popup = window.open('', '_blank', 'width=500,height=600');
+
+    try {
+      const response = await apiCall('/spotify/connect', { method: 'GET' });
+      
+      if (response && response.authUrl) {
+        if (popup) {
+          popup.location.href = response.authUrl;
+        } else {
+          window.location.href = response.authUrl;
+          return;
+        }
+      } else {
+        if (popup) popup.close();
+        throw new Error('Invalid response from server.');
+      }
+    } catch (err: any) {
+      if (popup) popup.close();
+      setError(err.message || 'Failed to connect to Spotify. Please try again.');
+      setConnecting(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('sonique_jwt');
@@ -91,10 +131,26 @@ export const AccountScreen = () => {
             {/* SPOTIFY CONNECTION SECTION */}
             <section className="bg-sonique-surface/30 border border-gray-800 p-8 md:p-12">
               <h2 className="text-2xl font-syne font-bold text-white uppercase mb-8 pb-4 border-b border-gray-800">Spotify Connection</h2>
-              <div className="flex items-center gap-4">
-                <div className="w-3 h-3 bg-sonique-lime rounded-full shadow-[0_0_10px_rgba(191,255,0,0.8)]"></div>
-                <p className="font-mono text-sm tracking-widest uppercase text-white">Connected</p>
-              </div>
+              {user.spotifyConnected ? (
+                <div className="flex items-center gap-4">
+                  <div className="w-3 h-3 bg-sonique-lime rounded-full shadow-[0_0_10px_rgba(191,255,0,0.8)]"></div>
+                  <p className="font-mono text-sm tracking-widest uppercase text-white">Connected</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-3 h-3 bg-gray-600 rounded-full"></div>
+                    <p className="font-mono text-sm tracking-widest uppercase text-gray-400">Not Connected</p>
+                  </div>
+                  <button 
+                    onClick={handleConnectSpotify}
+                    disabled={connecting}
+                    className="bg-sonique-lime text-black px-8 py-3 font-bold uppercase tracking-[0.2em] hover:bg-white transition-colors disabled:opacity-50"
+                  >
+                    {connecting ? 'Connecting...' : 'Connect Spotify'}
+                  </button>
+                </div>
+              )}
             </section>
 
             {/* SESSION SECTION */}
